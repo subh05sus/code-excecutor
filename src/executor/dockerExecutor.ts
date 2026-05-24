@@ -53,7 +53,7 @@ async function runContainer(
     Cmd: cmd,
     WorkingDir: "/code",
     HostConfig: {
-      Binds: [`${jobDir}:/code${readOnly ? ":ro" : ""}`],
+      Binds: [`${jobDir}:/code${readOnly ? ":ro" : ":z"}`],
       Memory: MEMORY_BYTES,
       MemorySwap: MEMORY_BYTES,
       NetworkMode: "none",

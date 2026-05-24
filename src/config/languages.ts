@@ -31,7 +31,7 @@ export const languageConfigs: Record<SupportedLanguage, LanguageConfig> = {
   cpp: {
     image: "gcc:14",
     filename: "solution.cpp",
-    compileCmd: ["g++", "-o", "solution", "solution.cpp"],
+    compileCmd: ["g++", "-std=c++20", "-o", "solution", "solution.cpp"],
     runCmd: ["./solution"],
   },
   go: {

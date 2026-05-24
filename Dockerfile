@@ -9,7 +9,9 @@ COPY dist/ ./dist/
 
 RUN addgroup -S executor && adduser -S executor -G executor && \
     addgroup -g 987 dockerhost && \
-    adduser executor dockerhost
+    adduser executor dockerhost && \
+    mkdir -p /tmp/jobs && \
+    chown executor:executor /tmp/jobs
 
 USER executor
 
