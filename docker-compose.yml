@@ -9,7 +9,15 @@ services:
     environment:
       - INTERNAL_TOKEN=${INTERNAL_TOKEN}
       - NODE_ENV=production
+      - PDF_S3_BUCKET=${PDF_S3_BUCKET}
+      - PDF_S3_REGION=${PDF_S3_REGION}
+      - PDF_S3_KEY_PREFIX=${PDF_S3_KEY_PREFIX:-pdfs}
+      - PDF_SIGNED_URL_TTL_SECONDS=${PDF_SIGNED_URL_TTL_SECONDS:-3600}
+      # Optional AWS credentials — omit on EC2 to use instance IAM role instead
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp/jobs:/tmp/jobs:z
+    mem_limit: 1.5g
     restart: unless-stopped
