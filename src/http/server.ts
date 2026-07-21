@@ -4,12 +4,13 @@ import { executeRouter } from "./routes/execute";
 import { jobsRouter } from "./routes/jobs";
 import { pdfRouter } from "./routes/pdf";
 import { pdfJobsRouter } from "./routes/pdfJobs";
+import { transcriptBatchRouter } from "./routes/transcriptBatch";
 
 export function createApp() {
   const app = express();
 
-  // 1100kb: headroom above 1MB HTML limit for JSON envelope
-  app.use(express.json({ limit: "1100kb" }));
+  // 2mb: transcript batches ship inlined HTML back and forth
+  app.use(express.json({ limit: "2mb" }));
 
   app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
@@ -20,6 +21,7 @@ export function createApp() {
   app.use(jobsRouter);
   app.use(pdfRouter);
   app.use(pdfJobsRouter);
+  app.use(transcriptBatchRouter);
 
   return app;
 }

@@ -5,13 +5,18 @@ import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
 import { ExpressAdapter } from "@bull-board/express";
 import { executionQueue } from "../queue/executionQueue";
 import { pdfQueue } from "../queue/pdfQueue";
+import { transcriptQueue } from "../queue/transcriptQueue";
 
 export function createBullBoardServer(): http.Server {
   const serverAdapter = new ExpressAdapter();
   serverAdapter.setBasePath("/");
 
   createBullBoard({
-    queues: [new BullMQAdapter(executionQueue), new BullMQAdapter(pdfQueue)],
+    queues: [
+      new BullMQAdapter(executionQueue),
+      new BullMQAdapter(pdfQueue),
+      new BullMQAdapter(transcriptQueue),
+    ],
     serverAdapter,
   });
 

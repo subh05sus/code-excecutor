@@ -3,6 +3,7 @@ import { createApp } from "./http/server";
 import { createBullBoardServer } from "./http/bullboard";
 import { createWorker } from "./queue/worker";
 import { createPdfWorker } from "./queue/pdfWorker";
+import { createTranscriptWorker } from "./queue/transcriptWorker";
 import { prePullImages } from "./executor/dockerExecutor";
 import { warmup as warmupBrowser, closeBrowser } from "./pdf/browserPool";
 import { pdfConfig } from "./config/pdf";
@@ -18,6 +19,9 @@ async function main() {
   const pdfWorker = createPdfWorker();
   console.log(`BullMQ pdf-generation worker started (concurrency=${pdfConfig.worker.concurrency})`);
 
+  const transcriptWorker = createTranscriptWorker();
+  console.log(`BullMQ transcript-generation worker started (concurrency=${config.transcript.workerConcurrency})`);
+
   const app = createApp();
   const server = app.listen(config.port, () => {
     console.log(`HTTP server listening on port ${config.port}`);
@@ -27,7 +31,7 @@ async function main() {
 
   const shutdown = async () => {
     console.log("Shutting down...");
-    await Promise.all([worker.close(), pdfWorker.close()]);
+    await Promise.all([worker.close(), pdfWorker.close(), transcriptWorker.close()]);
     await closeBrowser();
     bullBoardServer.close();
     server.close(() => process.exit(0));

@@ -13,4 +13,9 @@ export const config = {
     username: process.env["REDIS_USERNAME"] ?? "default",
     password: process.env["REDIS_PASSWORD"] ?? "meow1234",
   },
+  transcript: {
+    // Bearer secret used for callbacks INTO SparkMentis (prepare/complete).
+    callbackSecret: process.env["TRANSCRIPT_CALLBACK_SECRET"] ?? "",
+    workerConcurrency: parseInt(process.env["TRANSCRIPT_WORKER_CONCURRENCY"] ?? "3", 10),
+  },
 };

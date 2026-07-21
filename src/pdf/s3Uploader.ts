@@ -24,3 +24,17 @@ export async function uploadAndSign(
 
   return { url, expiresAt };
 }
+
+/**
+ * Upload an object to an explicit bucket + key with no presigning. Used for
+ * bulk transcripts, which are written straight to the SparkMentis bucket at a
+ * deterministic key; SparkMentis presigns downloads itself later.
+ */
+export async function uploadToBucket(
+  bucket: string,
+  key: string,
+  buffer: Buffer,
+  contentType: string
+): Promise<void> {
+  await s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: buffer, ContentType: contentType }));
+}
