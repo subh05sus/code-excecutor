@@ -5,9 +5,12 @@ const router = Router();
 
 /**
  * Enqueue a bulk transcript batch (called by SparkMentis). One BullMQ job per
- * item; each job drives the SparkMentis prepare/complete callbacks. Job ids are
- * `${requestId}_${itemId}` (BullMQ forbids ':' in custom ids) so re-enqueues
- * (retry) are idempotent.
+ * item; each job drives the SparkMentis prepare/complete callbacks.
+ *
+ * Job ids are auto-generated (not custom): retry/regenerate re-enqueue the same
+ * items and must produce fresh jobs, and BullMQ would drop a re-add of an
+ * existing custom id (retained by removeOnComplete). Idempotency is enforced in
+ * SparkMentis instead (atomic claim + idempotent result + finalize-once).
  */
 router.post("/transcript-batch", async (req: Request, res: Response): Promise<void> => {
   const { requestId, items, callbackBaseUrl } = req.body as {
@@ -29,7 +32,6 @@ router.post("/transcript-batch", async (req: Request, res: Response): Promise<vo
       items.map((it) => ({
         name: "render",
         data: { itemId: it.itemId, prepareUrl, completeUrl },
-        opts: { jobId: `${requestId}_${it.itemId}` },
       }))
     );
   } catch (err) {
