@@ -6,7 +6,8 @@ const router = Router();
 /**
  * Enqueue a bulk transcript batch (called by SparkMentis). One BullMQ job per
  * item; each job drives the SparkMentis prepare/complete callbacks. Job ids are
- * `${requestId}:${itemId}` so re-enqueues (retry) are idempotent.
+ * `${requestId}_${itemId}` (BullMQ forbids ':' in custom ids) so re-enqueues
+ * (retry) are idempotent.
  */
 router.post("/transcript-batch", async (req: Request, res: Response): Promise<void> => {
   const { requestId, items, callbackBaseUrl } = req.body as {
@@ -23,13 +24,19 @@ router.post("/transcript-batch", async (req: Request, res: Response): Promise<vo
   const prepareUrl = `${callbackBaseUrl}/api/internal/transcripts/prepare`;
   const completeUrl = `${callbackBaseUrl}/api/internal/transcripts/complete`;
 
-  await transcriptQueue.addBulk(
-    items.map((it) => ({
-      name: "render",
-      data: { itemId: it.itemId, prepareUrl, completeUrl },
-      opts: { jobId: `${requestId}:${it.itemId}` },
-    }))
-  );
+  try {
+    await transcriptQueue.addBulk(
+      items.map((it) => ({
+        name: "render",
+        data: { itemId: it.itemId, prepareUrl, completeUrl },
+        opts: { jobId: `${requestId}_${it.itemId}` },
+      }))
+    );
+  } catch (err) {
+    console.error("[transcript-batch] enqueue failed:", err);
+    res.status(500).json({ error: err instanceof Error ? err.message : "enqueue failed" });
+    return;
+  }
 
   res.status(202).json({ requestId, queued: items.length });
 });
