@@ -13,6 +13,9 @@ services:
       - PDF_S3_REGION=${PDF_S3_REGION}
       - PDF_S3_KEY_PREFIX=${PDF_S3_KEY_PREFIX:-pdfs}
       - PDF_SIGNED_URL_TTL_SECONDS=${PDF_SIGNED_URL_TTL_SECONDS:-3600}
+      # Bulk transcript generation — callbacks into SparkMentis (must match SparkMentis)
+      - TRANSCRIPT_CALLBACK_SECRET=${TRANSCRIPT_CALLBACK_SECRET}
+      - TRANSCRIPT_WORKER_CONCURRENCY=${TRANSCRIPT_WORKER_CONCURRENCY:-3}
       # Optional AWS credentials — omit on EC2 to use instance IAM role instead
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
