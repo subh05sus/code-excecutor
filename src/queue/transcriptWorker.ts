@@ -14,9 +14,9 @@ import { uploadToBucket } from "../pdf/s3Uploader";
  * retries; on the final failure we report ok:false so the batch can finalize.
  */
 export function createTranscriptWorker(): Worker {
-  const secret = config.transcript.callbackSecret;
+  const secret = config.internalToken;
   console.log(
-    `[transcript-worker] callback secret: ${secret ? `SET (len=${secret.length}, prefix=${secret.slice(0, 4)}…)` : "MISSING — callbacks will 401"}`
+    `[transcript-worker] callback token (INTERNAL_TOKEN): ${secret ? `SET (len=${secret.length}, prefix=${secret.slice(0, 4)}…)` : "MISSING — callbacks will 401"}`
   );
 
   const worker = new Worker<TranscriptJobData>(

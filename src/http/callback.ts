@@ -8,7 +8,7 @@ type LogFn = (msg: string) => Promise<unknown> | void;
  * Optionally logs breadcrumbs (secret presence + response) via `log`.
  */
 export async function postCallback<T = unknown>(url: string, body: unknown, log?: LogFn): Promise<T> {
-  const secret = config.transcript.callbackSecret;
+  const secret = config.internalToken;
   const secretInfo = secret ? `len=${secret.length} prefix=${secret.slice(0, 4)}…` : "EMPTY";
   if (log) await log(`POST ${url} (auth secret: ${secretInfo})`);
 
