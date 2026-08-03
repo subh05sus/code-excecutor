@@ -117,6 +117,7 @@ export async function runInDocker(
   const jobDir = path.join(JOBS_DIR, jobId);
 
   await fs.mkdir(jobDir, { recursive: true });
+  await fs.chmod(jobDir, 0o777);
   await fs.writeFile(path.join(jobDir, langConfig.filename), data.code, "utf8");
 
   const start = Date.now();
