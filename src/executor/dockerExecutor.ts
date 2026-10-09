@@ -5,8 +5,8 @@ import { ExecutionJobData, ExecutionResult } from "../types/index";
 import { languageConfigs } from "../config/languages";
 import { collectOutput } from "./outputCollector";
 
-const docker = new Docker({ socketPath: "/var/run/docker.sock" });
-const JOBS_DIR = "/tmp/jobs";
+const docker = new Docker({ socketPath: process.env["DOCKER_SOCKET"] ?? "/var/run/docker.sock" });
+const JOBS_DIR = process.env["JOBS_DIR"] ?? "/tmp/jobs";
 const RUN_TIMEOUT_MS = 10_000;
 const COMPILE_TIMEOUT_MS = 15_000;
 const MEMORY_BYTES = 128 * 1024 * 1024;
@@ -46,16 +46,19 @@ async function runContainer(
   cmd: string[],
   jobDir: string,
   readOnly: boolean,
-  timeoutMs: number
+  timeoutMs: number,
+  opts: { memoryBytes?: number; tmpfs?: Record<string, string> } = {}
 ): Promise<{ stdout: string; stderr: string; exitCode: number | null; timedOut: boolean }> {
+  const memory = opts.memoryBytes ?? MEMORY_BYTES;
   const container = await docker.createContainer({
     Image: image,
     Cmd: cmd,
     WorkingDir: "/code",
     HostConfig: {
       Binds: [`${jobDir}:/code${readOnly ? ":ro" : ":z"}`],
-      Memory: MEMORY_BYTES,
-      MemorySwap: MEMORY_BYTES,
+      ...(opts.tmpfs ? { Tmpfs: opts.tmpfs } : {}),
+      Memory: memory,
+      MemorySwap: memory,
       NetworkMode: "none",
       AutoRemove: true,
       ReadonlyRootfs: readOnly,
@@ -148,7 +151,8 @@ export async function runInDocker(
       langConfig.runCmd,
       jobDir,
       !langConfig.compileCmd,
-      RUN_TIMEOUT_MS
+      langConfig.runTimeoutMs ?? RUN_TIMEOUT_MS,
+      { memoryBytes: langConfig.memoryBytes, tmpfs: langConfig.tmpfs }
     );
 
     return {

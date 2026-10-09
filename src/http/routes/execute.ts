@@ -5,7 +5,8 @@ import { SupportedLanguage } from "../../types/index";
 
 const router = Router();
 
-const MAX_CODE_LENGTH = 64 * 1024; // 64KB
+// SQL datasets and multi-file PHP projects travel inside the runner script.
+const MAX_CODE_LENGTH = 1024 * 1024; // 1MB
 
 router.post("/execute", async (req: Request, res: Response): Promise<void> => {
   const { language, code } = req.body as { language?: unknown; code?: unknown };

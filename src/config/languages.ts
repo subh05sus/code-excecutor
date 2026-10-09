@@ -9,6 +9,7 @@ export const SUPPORTED_LANGUAGES = new Set<SupportedLanguage>([
   "rust",
   "php",
   "ruby",
+  "sql",
 ]);
 
 export const languageConfigs: Record<SupportedLanguage, LanguageConfig> = {
@@ -49,10 +50,25 @@ export const languageConfigs: Record<SupportedLanguage, LanguageConfig> = {
     image: "php:8.3-cli-alpine",
     filename: "solution.php",
     runCmd: ["php", "solution.php"],
+    // Website projects: the runner writes the project and PHP's session files
+    // here, then serves it with `php -S` on loopback.
+    tmpfs: { "/tmp": "rw,noexec,nosuid,nodev,size=32m" },
+    runTimeoutMs: 20_000,
   },
   ruby: {
     image: "ruby:3.3-alpine",
     filename: "solution.rb",
     runCmd: ["ruby", "solution.rb"],
+  },
+  // SQL exams: run.sh boots a throwaway MariaDB (MySQL dialect, as in XAMPP)
+  // on this tmpfs, loads each dataset into its own database and runs the
+  // student's SQL against it. Nothing persists past the run.
+  sql: {
+    image: "mariadb:11.4",
+    filename: "run.sh",
+    runCmd: ["bash", "run.sh"],
+    tmpfs: { "/tmp": "rw,noexec,nosuid,nodev,size=192m" },
+    memoryBytes: 384 * 1024 * 1024,
+    runTimeoutMs: 25_000,
   },
 };
