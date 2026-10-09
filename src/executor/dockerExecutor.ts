@@ -6,6 +6,8 @@ import { languageConfigs } from "../config/languages";
 import { collectOutput } from "./outputCollector";
 
 const docker = new Docker({ socketPath: process.env["DOCKER_SOCKET"] ?? "/var/run/docker.sock" });
+// The same path inside this container and on the host: it is bind-mounted
+// here, and each job's folder is bind-mounted into the job's own container.
 const JOBS_DIR = process.env["JOBS_DIR"] ?? "/tmp/jobs";
 const RUN_TIMEOUT_MS = 10_000;
 const COMPILE_TIMEOUT_MS = 15_000;
@@ -119,7 +121,17 @@ export async function runInDocker(
   const langConfig = languageConfigs[data.language];
   const jobDir = path.join(JOBS_DIR, jobId);
 
-  await fs.mkdir(jobDir, { recursive: true });
+  // Not recursive: when the jobs folder is gone on the host (systemd-tmpfiles
+  // ages out /tmp), a recursive mkdir under the stale mount never settles and
+  // the job hangs "active" forever. This way the job fails, and says why.
+  try {
+    await fs.mkdir(jobDir);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new Error(`The jobs folder ${JOBS_DIR} is missing on the host; restart the executor (docker compose up -d)`);
+    }
+    if ((err as NodeJS.ErrnoException).code !== "EEXIST") throw err;
+  }
   await fs.chmod(jobDir, 0o777);
   await fs.writeFile(path.join(jobDir, langConfig.filename), data.code, "utf8");
 

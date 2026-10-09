@@ -24,7 +24,8 @@ export const languageConfigs: Record<SupportedLanguage, LanguageConfig> = {
     runCmd: ["python", "solution.py"],
   },
   java: {
-    image: "openjdk:21-slim",
+    // Docker Hub dropped the openjdk images (openjdk:21-slim 404s since mid-2025); Temurin is the maintained OpenJDK build.
+    image: "eclipse-temurin:21-jdk-alpine",
     filename: "Main.java",
     compileCmd: ["javac", "Main.java"],
     runCmd: ["java", "Main"],

@@ -67,7 +67,8 @@ docker run -d \
   -e INTERNAL_TOKEN=your-secret \
   -e NODE_ENV=production \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -v /tmp/jobs:/tmp/jobs \
+  -e JOBS_DIR=/var/lib/code-executor/jobs \
+  -v /var/lib/code-executor/jobs:/var/lib/code-executor/jobs \
   --restart unless-stopped \
   code-executor
 ```
@@ -227,9 +228,10 @@ services:
     image: code-executor:latest   # or build: ./code-executor
     environment:
       - INTERNAL_TOKEN=${INTERNAL_TOKEN}
+      - JOBS_DIR=/var/lib/code-executor/jobs
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /tmp/jobs:/tmp/jobs
+      - /var/lib/code-executor/jobs:/var/lib/code-executor/jobs
     networks:
       - app-net
 
@@ -261,7 +263,7 @@ In-flight jobs complete before the worker shuts down (graceful drain on `SIGTERM
 | Service Docker image | ~200 MB |
 | All 8 language images (pulled once) | ~5–8 GB |
 | Redis memory (200 recent jobs) | < 50 MB |
-| `/tmp/jobs` temp files | Cleaned up per job, near zero at rest |
+| `/var/lib/code-executor/jobs` temp files | Cleaned up per job, near zero at rest. Keep it out of `/tmp`: systemd-tmpfiles deletes idle `/tmp` folders after 30 days, which breaks the mount (every job then fails). |
 
 Ensure the host has **at least 10 GB free disk** for language images.
 

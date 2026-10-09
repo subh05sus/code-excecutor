@@ -8,6 +8,7 @@ services:
       - "6001:3001"
     environment:
       - INTERNAL_TOKEN=${INTERNAL_TOKEN}
+      - JOBS_DIR=/var/lib/code-executor/jobs
       - NODE_ENV=production
       - PDF_S3_BUCKET=${PDF_S3_BUCKET}
       - PDF_S3_REGION=${PDF_S3_REGION}
@@ -20,6 +21,9 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /tmp/jobs:/tmp/jobs:z
+      # Not under /tmp: Ubuntu's systemd-tmpfiles deletes /tmp entries idle for 30 days,
+      # which left this mount pointing at a deleted folder and every job hanging.
+      # Same path on both sides — job containers bind-mount their folder from the host.
+      - /var/lib/code-executor/jobs:/var/lib/code-executor/jobs:z
     mem_limit: 1.5g
     restart: unless-stopped
