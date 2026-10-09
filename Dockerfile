@@ -18,6 +18,8 @@ COPY package*.json ./
 RUN npm ci --only=production
 
 COPY dist/ ./dist/
+# Dockerfiles of the runner images the service builds itself (LanguageConfig.build).
+COPY runners/ ./runners/
 
 RUN addgroup -S executor && adduser -S executor -G executor && \
     addgroup -g 987 dockerhost && \

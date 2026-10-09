@@ -20,6 +20,8 @@ export interface LanguageConfig {
   tmpfs?: Record<string, string>;
   /** Run time limit (default 10 s). */
   runTimeoutMs?: number;
+  /** Built here, not pulled: the folder under runners/ holding its Dockerfile. */
+  build?: string;
 }
 
 export interface ExecutionJobData {

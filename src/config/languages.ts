@@ -36,10 +36,16 @@ export const languageConfigs: Record<SupportedLanguage, LanguageConfig> = {
     compileCmd: ["g++", "-std=c++20", "-o", "solution", "solution.cpp"],
     runCmd: ["./solution"],
   },
+  // `go run` needed a writable /tmp (it failed on the read-only root) and
+  // compiled the standard library cold every time (~10 s). The runner image
+  // has a warm build cache; the build step writes to the container's own
+  // layer, so only the student's file is compiled.
   go: {
-    image: "golang:1.22-alpine",
+    image: "sparkmentis-go-runner:1.22",
+    build: "go",
     filename: "solution.go",
-    runCmd: ["go", "run", "solution.go"],
+    compileCmd: ["go", "build", "-o", "solution", "solution.go"],
+    runCmd: ["./solution"],
   },
   rust: {
     image: "rust:1.78-slim",

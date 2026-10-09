@@ -15,6 +15,7 @@ const MEMORY_BYTES = 128 * 1024 * 1024;
 
 export async function prePullImages(): Promise<void> {
   const configs = Object.values(languageConfigs);
+  const built = new Map(configs.filter((c) => c.build).map((c) => [c.image, c.build as string]));
   const images = [...new Set(configs.map((c) => c.image))];
 
   console.log(`Pre-pulling ${images.length} Docker images...`);
@@ -22,6 +23,15 @@ export async function prePullImages(): Promise<void> {
   await Promise.all(
     images.map(async (image) => {
       try {
+        const runner = built.get(image);
+        if (runner) {
+          // Ours, not on a registry: build it when missing (e.g. after a prune).
+          if (await hasImage(image)) return console.log(`Present: ${image}`);
+          console.log(`Building ${image} from runners/${runner}...`);
+          await buildRunnerImage(image, runner);
+          console.log(`Built: ${image}`);
+          return;
+        }
         await pullImage(image);
         console.log(`Pulled: ${image}`);
       } catch (err) {
@@ -29,6 +39,30 @@ export async function prePullImages(): Promise<void> {
       }
     })
   );
+}
+
+async function hasImage(image: string): Promise<boolean> {
+  try {
+    await docker.getImage(image).inspect();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const RUNNERS_DIR = path.resolve(__dirname, "../../runners");
+
+function buildRunnerImage(image: string, runner: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    docker.buildImage({ context: path.join(RUNNERS_DIR, runner), src: ["Dockerfile"] }, { t: image }, (err: Error | null, stream?: NodeJS.ReadableStream) => {
+      if (err || !stream) return reject(err ?? new Error("no build output"));
+      docker.modem.followProgress(stream, (err2: Error | null, output: Array<{ error?: string }>) => {
+        const failed = err2?.message ?? output?.find((o) => o.error)?.error;
+        if (failed) return reject(new Error(failed));
+        resolve();
+      });
+    });
+  });
 }
 
 function pullImage(image: string): Promise<void> {
@@ -144,7 +178,8 @@ export async function runInDocker(
         langConfig.compileCmd,
         jobDir,
         false,
-        COMPILE_TIMEOUT_MS
+        COMPILE_TIMEOUT_MS,
+        { memoryBytes: langConfig.memoryBytes }
       );
 
       if (compile.timedOut || (compile.exitCode !== null && compile.exitCode !== 0)) {
