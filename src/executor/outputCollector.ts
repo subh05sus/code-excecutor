@@ -1,7 +1,7 @@
 import { PassThrough } from "stream";
 import Docker from "dockerode";
 
-const MAX_OUTPUT_BYTES = 1024 * 1024; // 1MB
+const DEFAULT_MAX_OUTPUT_BYTES = 1024 * 1024; // 1MB
 
 export interface CollectedOutput {
   stdout: string;
@@ -10,8 +10,10 @@ export interface CollectedOutput {
 
 export async function collectOutput(
   container: Docker.Container,
-  stream: NodeJS.ReadableStream
+  stream: NodeJS.ReadableStream,
+  maxBytes: number = DEFAULT_MAX_OUTPUT_BYTES
 ): Promise<CollectedOutput> {
+  const MAX_OUTPUT_BYTES = maxBytes;
   const stdoutPass = new PassThrough();
   const stderrPass = new PassThrough();
 

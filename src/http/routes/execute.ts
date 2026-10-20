@@ -9,7 +9,7 @@ const router = Router();
 const MAX_CODE_LENGTH = 1024 * 1024; // 1MB
 
 router.post("/execute", async (req: Request, res: Response): Promise<void> => {
-  const { language, code } = req.body as { language?: unknown; code?: unknown };
+  const { language, code, cases, caseTimeoutMs } = req.body as { language?: unknown; code?: unknown; cases?: unknown; caseTimeoutMs?: unknown };
 
   if (!language || typeof language !== "string" || !SUPPORTED_LANGUAGES.has(language as SupportedLanguage)) {
     res.status(400).json({
@@ -29,9 +29,20 @@ router.post("/execute", async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
+  // Program mode (practical exams): stdin per case, compiled once.
+  let jobCases: Array<{ stdin: string }> | undefined;
+  if (cases !== undefined) {
+    if (!Array.isArray(cases) || cases.length === 0 || cases.length > 50 || cases.some((c) => typeof c?.stdin !== "string" || c.stdin.length > 256 * 1024)) {
+      res.status(400).json({ error: "cases must be 1–50 items of { stdin } (at most 256 KB each)" });
+      return;
+    }
+    jobCases = cases.map((c: { stdin: string }) => ({ stdin: c.stdin }));
+  }
+
   const job = await executionQueue.add("run", {
     language: language as SupportedLanguage,
     code,
+    ...(jobCases ? { cases: jobCases, caseTimeoutMs: typeof caseTimeoutMs === "number" ? caseTimeoutMs : undefined } : {}),
   });
 
   res.status(202).json({ jobId: job.id });

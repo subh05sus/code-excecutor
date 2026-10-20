@@ -5,11 +5,14 @@ export const SUPPORTED_LANGUAGES = new Set<SupportedLanguage>([
   "python",
   "java",
   "cpp",
+  "c",
+  "csharp",
   "go",
   "rust",
   "php",
   "ruby",
   "sql",
+  "lamp",
 ]);
 
 export const languageConfigs: Record<SupportedLanguage, LanguageConfig> = {
@@ -35,6 +38,25 @@ export const languageConfigs: Record<SupportedLanguage, LanguageConfig> = {
     filename: "solution.cpp",
     compileCmd: ["g++", "-std=c++20", "-o", "solution", "solution.cpp"],
     runCmd: ["./solution"],
+  },
+  c: {
+    image: "gcc:14",
+    filename: "solution.c",
+    compileCmd: ["gcc", "-O2", "-std=gnu17", "-o", "solution", "solution.c", "-lm"],
+    runCmd: ["./solution"],
+  },
+  // Practical exams (2026-10-20): Roslyn's csc straight from the SDK, ~2 s a file
+  // (runners/csharp). The runtime needs a writable HOME for its caches.
+  csharp: {
+    image: "sparkmentis-csharp-runner:8",
+    build: "csharp",
+    filename: "solution.cs",
+    compileCmd: ["csc-compile", "solution.cs", "solution.dll"],
+    runCmd: ["dotnet", "solution.dll"],
+    env: ["HOME=/tmp", "DOTNET_CLI_TELEMETRY_OPTOUT=1", "DOTNET_NOLOGO=1", "DOTNET_gcServer=0", "DOTNET_GCHeapHardLimit=0xC000000"],
+    tmpfs: { "/tmp": "rw,nosuid,nodev,size=64m" },
+    memoryBytes: 640 * 1024 * 1024,
+    compileTimeoutMs: 40_000,
   },
   // `go run` needed a writable /tmp (it failed on the read-only root) and
   // compiled the standard library cold every time (~10 s). The runner image
@@ -78,4 +100,25 @@ export const languageConfigs: Record<SupportedLanguage, LanguageConfig> = {
     memoryBytes: 384 * 1024 * 1024,
     runTimeoutMs: 25_000,
   },
+  // Full-stack practicals (2026-10-20): the app's run.sh boots the question's
+  // MariaDB on /tmp, loads its tables and rows, and replays the checks against
+  // PHP's server (runners/lamp: MariaDB 11.4 + PHP 8.3 with mysqli and PDO).
+  lamp: {
+    image: "sparkmentis-lamp-runner:1",
+    build: "lamp",
+    filename: "run.sh",
+    runCmd: ["bash", "run.sh"],
+    tmpfs: { "/tmp": "rw,nosuid,nodev,size=256m" },
+    memoryBytes: 512 * 1024 * 1024,
+    runTimeoutMs: 45_000,
+  },
 };
+
+/** Not a language: the browser runner for web practicals' checks and screenshots (runners/browser). */
+export const BROWSER_RUNNER = {
+  image: "sparkmentis-browser-runner:1",
+  build: "browser",
+  memoryBytes: 1024 * 1024 * 1024,
+  tmpfs: { "/tmp": "rw,nosuid,nodev,size=384m" },
+  pidsLimit: 512,
+} as const;

@@ -5,6 +5,7 @@ import { createWorker } from "./queue/worker";
 import { createPdfWorker } from "./queue/pdfWorker";
 import { createTranscriptWorker } from "./queue/transcriptWorker";
 import { prePullImages } from "./executor/dockerExecutor";
+import { cleanupSandboxes, startSandboxReaper } from "./sandbox/manager";
 import { warmup as warmupBrowser, closeBrowser } from "./pdf/browserPool";
 import { pdfConfig } from "./config/pdf";
 
@@ -12,6 +13,10 @@ async function main() {
   console.log("Starting code-executor...");
 
   await Promise.all([prePullImages(), warmupBrowser()]);
+  // Live practical sites don't survive a restart: their containers are removed.
+  const leftover = await cleanupSandboxes().catch(() => 0);
+  if (leftover) console.log(`Removed ${leftover} live site(s) left from before the restart`);
+  const reaper = startSandboxReaper();
 
   const worker = createWorker();
   console.log("BullMQ code-execution worker started (concurrency=5)");
@@ -31,6 +36,7 @@ async function main() {
 
   const shutdown = async () => {
     console.log("Shutting down...");
+    clearInterval(reaper);
     await Promise.all([worker.close(), pdfWorker.close(), transcriptWorker.close()]);
     await closeBrowser();
     bullBoardServer.close();

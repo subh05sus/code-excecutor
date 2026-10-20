@@ -1,0 +1,11 @@
+#!/bin/sh
+# csc-compile <source.cs> <out.dll> — compiles one C# file against the runtime's
+# reference assemblies and writes the runtimeconfig `dotnet <out.dll>` needs.
+set -e
+CSC=$(ls -d /usr/share/dotnet/sdk/*/Roslyn/bincore/csc.dll | sort -V | tail -n1)
+REF=$(ls -d /usr/share/dotnet/packs/Microsoft.NETCore.App.Ref/*/ref/net8.0 | sort -V | tail -n1)
+REFS=""
+for f in "$REF"/*.dll; do REFS="$REFS -r:$f"; done
+# shellcheck disable=SC2086
+dotnet "$CSC" -nologo -noconfig -nostdlib -optimize+ -langversion:latest -nullable:disable -target:exe -out:"$2" $REFS "$1"
+cp /opt/runtimeconfig.json "${2%.dll}.runtimeconfig.json"
