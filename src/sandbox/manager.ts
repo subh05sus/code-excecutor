@@ -18,7 +18,12 @@ const IMAGE = "sparkmentis-lamp-runner:2";
 const LABEL = "sparkmentis.sandbox";
 const num = (v: string | undefined, d: number) => (v && Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v) : d);
 const IDLE_MS = num(process.env["SANDBOX_IDLE_MS"], 10 * 60_000);
-const MAX_LIVE = num(process.env["SANDBOX_MAX"], 30);
+/**
+ * Live sites at once. Load test (2026-10-20, the shared 8 GB host): a site
+ * holds about 163 MB, and 24 of them leave about 2 GB for SparkMentor and its
+ * database. Over the cap, a site idle 90 s makes room or the student waits.
+ */
+const MAX_LIVE = num(process.env["SANDBOX_MAX"], 24);
 const MEMORY = num(process.env["SANDBOX_MEMORY_MB"], 256) * 1024 * 1024;
 /** A site used within this long isn't evicted to make room. */
 const EVICT_IDLE_MS = 90_000;
