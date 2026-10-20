@@ -52,9 +52,8 @@ await new Promise((r) => server.listen(8123, "127.0.0.1", r));
 const BASE = "http://127.0.0.1:8123/";
 
 const report = { checks: [], shots: [], console: {} };
-const emit = () => {
-  process.stdout.write("\n---SPARK_BROWSER---\n" + JSON.stringify(report) + "\n");
-};
+// Resolves once the report is written: exiting earlier cuts a pipe at 64 KB (screenshots run far past that).
+const emit = () => new Promise((resolve) => process.stdout.write("\n---SPARK_BROWSER---\n" + JSON.stringify(report) + "\n", resolve));
 
 let browser;
 try {
@@ -65,7 +64,7 @@ try {
   });
 } catch (err) {
   report.fatal = `The browser didn't start: ${short(err.message)}`;
-  emit();
+  await emit();
   process.exit(0);
 }
 
@@ -271,5 +270,5 @@ for (const p of shots.pages ?? []) {
 
 await browser.close().catch(() => {});
 server.close();
-emit();
+await emit();
 process.exit(0);

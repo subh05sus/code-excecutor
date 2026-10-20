@@ -116,7 +116,7 @@ export const languageConfigs: Record<SupportedLanguage, LanguageConfig> = {
 
 /** Not a language: the browser runner for web practicals' checks and screenshots (runners/browser). */
 export const BROWSER_RUNNER = {
-  image: "sparkmentis-browser-runner:1",
+  image: "sparkmentis-browser-runner:2",
   build: "browser",
   memoryBytes: 1024 * 1024 * 1024,
   tmpfs: { "/tmp": "rw,nosuid,nodev,size=384m" },
