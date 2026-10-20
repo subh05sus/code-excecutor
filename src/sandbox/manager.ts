@@ -162,7 +162,7 @@ async function create(spec: SandboxSpec, initial: SandboxFiles): Promise<Sandbox
   entries.push({ name: "init/go", data: Buffer.from("1") });
   await copyIn(container, entries);
   s.ready = (async () => {
-    const r = await execIn(container, ["bash", "-c", "for i in $(seq 1 600); do [ -f /tmp/init/ready ] && break; sleep 0.05; done; [ -f /tmp/init/ready ] || exit 1; cat /tmp/init/db-load.status 2>/dev/null; echo; tail -c 3000 /tmp/init/db-load.log 2>/dev/null"], "", 45_000);
+    const r = await execIn(container, ["bash", "-c", "for i in $(seq 1 600); do [ -f /tmp/init/ready ] && break; sleep 0.05; done; [ -f /tmp/init/ready ] || exit 1; cat /tmp/init/db-load.status 2>/dev/null; echo; tail -c 3000 /tmp/init/db-load.log 2>/dev/null; exit 0"], "", 45_000);
     if (r.exitCode !== 0) throw new Error("The site didn't start in time");
     const [status, ...log] = r.stdout.split("\n");
     return { dbOk: spec.database ? status.trim() === "0" : null, dbLog: log.join("\n").trim() };
