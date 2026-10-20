@@ -14,7 +14,7 @@ import { tarOf, type TarEntry } from "./tar";
  * caller is told to wait a few seconds.
  */
 
-const IMAGE = "sparkmentis-lamp-runner:1";
+const IMAGE = "sparkmentis-lamp-runner:2";
 const LABEL = "sparkmentis.sandbox";
 const num = (v: string | undefined, d: number) => (v && Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v) : d);
 const IDLE_MS = num(process.env["SANDBOX_IDLE_MS"], 10 * 60_000);
@@ -22,6 +22,26 @@ const MAX_LIVE = num(process.env["SANDBOX_MAX"], 30);
 const MEMORY = num(process.env["SANDBOX_MEMORY_MB"], 256) * 1024 * 1024;
 /** A site used within this long isn't evicted to make room. */
 const EVICT_IDLE_MS = 90_000;
+/**
+ * Sites booting at once (load test, 2026-10-20: 30 starting together pushed a
+ * 2-vCPU host to a load of 7 and some databases missed their start). The rest
+ * wait their turn: a class opening a full-stack question gets its sites in
+ * order instead of all of them failing.
+ */
+const START_AT_ONCE = num(process.env["SANDBOX_START_CONCURRENCY"], 3);
+let booting = 0;
+const bootQueue: Array<() => void> = [];
+async function bootSlot(): Promise<() => void> {
+  if (booting >= START_AT_ONCE) await new Promise<void>((resolve) => bootQueue.push(resolve));
+  booting++;
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    booting--;
+    bootQueue.shift()?.();
+  };
+}
 
 export type SandboxSpec = {
   key: string;
@@ -120,6 +140,19 @@ async function makeRoom(): Promise<void> {
 async function create(spec: SandboxSpec, initial: SandboxFiles): Promise<Sandbox> {
   await makeRoom();
   await ensureImage(IMAGE);
+  const release = await bootSlot();
+  try {
+    const s = await boot(spec, initial);
+    // The slot is held until the site has booted (its database is the heavy part).
+    s.ready.then(release, release);
+    return s;
+  } catch (err) {
+    release();
+    throw err;
+  }
+}
+
+async function boot(spec: SandboxSpec, initial: SandboxFiles): Promise<Sandbox> {
   const name = nameOf(spec.key);
   await removeContainer(name);
   const container = await docker.createContainer({
@@ -162,7 +195,7 @@ async function create(spec: SandboxSpec, initial: SandboxFiles): Promise<Sandbox
   entries.push({ name: "init/go", data: Buffer.from("1") });
   await copyIn(container, entries);
   s.ready = (async () => {
-    const r = await execIn(container, ["bash", "-c", "for i in $(seq 1 600); do [ -f /tmp/init/ready ] && break; sleep 0.05; done; [ -f /tmp/init/ready ] || exit 1; cat /tmp/init/db-load.status 2>/dev/null; echo; tail -c 3000 /tmp/init/db-load.log 2>/dev/null; exit 0"], "", 45_000);
+    const r = await execIn(container, ["bash", "-c", "for i in $(seq 1 1200); do [ -f /tmp/init/ready ] && break; sleep 0.05; done; [ -f /tmp/init/ready ] || exit 1; cat /tmp/init/db-load.status 2>/dev/null; echo; tail -c 3000 /tmp/init/db-load.log 2>/dev/null; exit 0"], "", 75_000);
     if (r.exitCode !== 0) throw new Error("The site didn't start in time");
     const [status, ...log] = r.stdout.split("\n");
     return { dbOk: spec.database ? status.trim() === "0" : null, dbLog: log.join("\n").trim() };

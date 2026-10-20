@@ -16,7 +16,8 @@ if [ -f /tmp/init/db.sql ]; then
     mariadbd "${COMMON[@]}" --socket="$S" --pid-file=/tmp/m.pid --tmpdir=/tmp --bind-address=127.0.0.1 --port=3306 --skip-name-resolve \
       --max-connections=24 --max-statement-time=10 --secure-file-priv=/tmp/sfp --local-infile=0 --table-open-cache=128 \
       --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci > /tmp/init/db.log 2>&1 &
-    for _ in $(seq 1 200); do mariadb-admin --no-defaults --socket="$S" --user=root ping > /dev/null 2>&1 && break; sleep 0.05; done
+    # Up to 30 s: a busy host (a class starting together) boots MariaDB slower.
+    for _ in $(seq 1 600); do mariadb-admin --no-defaults --socket="$S" --user=root ping > /dev/null 2>&1 && break; sleep 0.05; done
     # XAMPP's root with no password, over TCP as well as the socket.
     mariadb --no-defaults --socket="$S" --user=root -e "CREATE USER IF NOT EXISTS 'root'@'127.0.0.1' IDENTIFIED BY ''; GRANT ALL ON *.* TO 'root'@'127.0.0.1' WITH GRANT OPTION; CREATE USER IF NOT EXISTS 'root'@'::1' IDENTIFIED BY ''; GRANT ALL ON *.* TO 'root'@'::1' WITH GRANT OPTION; FLUSH PRIVILEGES;" > /tmp/init/grants.log 2>&1
     mariadb --no-defaults --socket="$S" --user=root --default-character-set=utf8mb4 < /tmp/init/db.sql > /tmp/init/db-load.log 2>&1

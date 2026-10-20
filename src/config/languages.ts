@@ -104,7 +104,7 @@ export const languageConfigs: Record<SupportedLanguage, LanguageConfig> = {
   // MariaDB on /tmp, loads its tables and rows, and replays the checks against
   // PHP's server (runners/lamp: MariaDB 11.4 + PHP 8.3 with mysqli and PDO).
   lamp: {
-    image: "sparkmentis-lamp-runner:1",
+    image: "sparkmentis-lamp-runner:2",
     build: "lamp",
     filename: "run.sh",
     runCmd: ["bash", "run.sh"],
